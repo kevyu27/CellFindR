@@ -1,1 +1,4 @@
-exportPattern("^[[:alpha:]]+")
+import(gplots)
+import(Seurat)
+import(RColorBrewer)
+import(Matrix)

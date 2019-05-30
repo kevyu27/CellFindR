@@ -2,7 +2,7 @@
 \alias{run_clustering}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-%%  ~~function to do ... ~~
+Run Clustering
 }
 \description{
 runs clustering on defined Seurat object}

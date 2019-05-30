@@ -1,12 +1,5 @@
 # CellFindR Version 1.0.0
 
-library(Seurat)
-library(RColorBrewer)
-library(Matrix)
-library(gplots)
-library(pheatmap)
-
-
 # loads 10x data from 10x files
 load_tenx <- function(file_loc, res = 1, proj_name = 'tenx_data', cutoff= 7000, mito = FALSE){
   #load file

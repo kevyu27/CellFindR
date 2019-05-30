@@ -2,7 +2,7 @@
 \alias{plottingj}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-%%  ~~function to do ... ~~
+Plotting genes
 }
 \description{
 plots top 100 genes in violin and cluster plot }

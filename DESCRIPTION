@@ -6,6 +6,12 @@ Authors@R: person("Kevin", "Yu", email = "kyu@ucsf.edu",
 Description: clustering algorithm for scRNA seq written with help of Seurat
 Maintainer: Kevin Yu <kyu@ucsf.edu>
 Depends: R (>= 3.1.0)
-License: What license is it under?
+Imports:
+    gplots,
+    Seurat (>= 1.4.0.16),
+    RColorBrewer,
+    Matrix,
+    dplyr
+License: none
 LazyData: true
 
