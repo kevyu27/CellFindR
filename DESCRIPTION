@@ -1,0 +1,11 @@
+Package: CellFindR
+Title: CellFindR for ScRNAseq
+Version: 1.0.0
+Authors@R: person("Kevin", "Yu", email = "kyu@ucsf.edu",
+                  role = c("aut", "cre"))
+Description: clustering algorithm for scRNA seq written with help of Seurat
+Maintainer: Kevin Yu <kyu@ucsf.edu>
+Depends: R (>= 3.1.0)
+License: What license is it under?
+LazyData: true
+
