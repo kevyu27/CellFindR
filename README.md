@@ -10,7 +10,7 @@ published onto github! We have submitted our paper!
  
  
 **any inquiries or debugging questions ** can send an email to
- *cellfindr@gmail.com* 
+ *kyu@ucsf.edu* 
  
  
  
