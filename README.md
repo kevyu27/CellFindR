@@ -1,8 +1,8 @@
 # CellFindR
-scRNAseq tools for clustering written thanks on a basis for Seurat.
+scRNAseq tools for cell clustering
 
 ## Introduction
-CellFindR is a wraparound for many of the functions that exist in Seurat. It it centered around an iterative clustering algorithm that hopes to find unique cell populations. In addition, CellFindR includes many functions to make plotting and data organization much easier and more friendly for the average biologist. 
+CellFindR is a wraparound for many of the functions that exist in Seurat. It it centered around an iterative clustering algorithm that hopes to find unique cell populations. In addition, CellFindR includes many functions to improve plotting functions and heatmap generations to improve usability for scRNAseq data. 
 
 
 ### Version 1.0.0 08/20/19
