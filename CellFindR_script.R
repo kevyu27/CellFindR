@@ -37,7 +37,7 @@ dir_add <- paste( 'output', Sys.time(),'/', sep ='')
 dir.create(dir_add)
 file_dest <- paste(dir_add, project_name,'_', sep = '')
 
-# you can run find_res for the overall cluster but we found it sufficient to use the original 
+# you can run find_res for the overall cluster but we found it sufficient to use the original
 # resolution to continue: if you want that validation, run this next commented lines
 #res <- find_res(tenx)
 #print(res)
@@ -47,7 +47,7 @@ file_dest <- paste(dir_add, project_name,'_', sep = '')
 # runs CellFindR Clusters and the outputs:
 run_clustering(tenx, file_dest, dir_add)
 
-# sets the new CellFindR groups as a new meta.data -finalcluster, reading from the 
+# sets the new CellFindR groups as a new meta.data -finalcluster, reading from the
 # assign_test.csv that has CellFindR groups for each cell.
 tenx@data.info <- tenx@data.info[order(row.names(tenx@data.info)),]
 
@@ -64,8 +64,8 @@ TSNEPlot(tenx, do.label = TRUE)
 dev.off()
 
 # generates differential gene matrix with respect to each CellFindR group
-getmatrix(tenx, ex_loc, 'CellFindR')
-get_stats(tenx, ex_loc,project_name)
+getmatrix(tenx, file_dest, 'CellFindR')
+get_stats(tenx, file_dest, project_name)
 
 
 
