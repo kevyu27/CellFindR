@@ -9,7 +9,7 @@ CellFindR is a wraparound for many of the functions that exist in Seurat. It it 
 published onto github! BioRxiv https://www.biorxiv.org/content/10.1101/739680v1?rss=1!
  
 
-**any inquiries or debugging questions ** can send an email to
+**any inquiries or debugging questions ** please contact
  *kyu@ucsf.edu* 
  
  
