@@ -14,6 +14,7 @@ If you find CellfindR useful, please reference:
 
 Development of the Mouse and Human Cochlea at Single Cell Resolution
 Kevin Shengyang Yu, Stacey M. Frumm, Jason S. Park, Katharine Lee, Daniel M. Wong, Lauren Byrnes, Sarah M. Knox, Julie B. Sneddon, Aaron D. Tward
+
 doi: https://doi.org/10.1101/739680
 BioRxiv https://www.biorxiv.org/content/10.1101/739680v1?rss=1!
  
