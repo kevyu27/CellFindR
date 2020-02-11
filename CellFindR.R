@@ -1,3 +1,6 @@
+# cellFindR 2.0, version for Seurat 3.1
+#02.06.2020 Kevin Yu
+
 library(Seurat)
 library(dplyr)
 library(stringr)
@@ -37,9 +40,9 @@ load_tenx <- function(file_loc, res = 0.1, proj_name = 'tenx_data', cutoff= 1000
   #####################################
   tenx <- RunPCA(tenx, features = VariableFeatures(object = tenx))
   
-  tenx <- FindNeighbors(tenx, dims = 1:10)
+  tenx <- FindNeighbors(tenx, dims = 1:20)
   tenx <- FindClusters(tenx, resolution = 0.1)
-  tenx <- RunUMAP(tenx, dims = 1:10)
+  tenx <- RunUMAP(tenx, dims = 1:20)
   DimPlot(tenx, reduction = "umap")
   
   saveRDS(tenx, file = paste(file_loc,'/', proj_name, ".rds", sep = ''))
@@ -58,14 +61,15 @@ is_cluster <- function(tenx, thresh_genes = 10, thresh_val = log(2), pval = 1e-4
   matrix_output <- data.frame(row.names = row.names(tenx))
   
   for (j in sort(unique(tenx@active.ident))){
+    if (sum(tenx@active.ident == j) < 5){
+      return(FALSE)
+    }
     markers <- FindMarkers(tenx, ident.1 = j, min.pct = 0.25)
     markers <- markers[markers$p_val_adj < pval,]
     #find if the 10th biggest is less than log2, sum 
     print(sort(markers$avg_logFC, decreasing = TRUE)[thresh_genes])
     # if less than 10 significant genes
-    if (sum(tenx@active.ident == j) < 5){
-      return(FALSE)
-    }
+    
     if (length((markers$avg_logFC)) < 10){
       val <- val + 1
     } else if (sort(markers$avg_logFC, decreasing = TRUE)[thresh_genes] < thresh_val){
@@ -73,6 +77,9 @@ is_cluster <- function(tenx, thresh_genes = 10, thresh_val = log(2), pval = 1e-4
       val <- val + 1
     } else{
       counter = counter + 1
+    }
+    if (val > 1){
+      return(FALSE)
     }
   }
   if (val > 1){
@@ -95,9 +102,9 @@ find_res <- function(tenx, initial_res = 0.1, jump = 0.1, thresh_genes = 10, thr
   
   while(TRUE){
     print(paste('Trying',RES_IT, sep = ' '))
-    tenx <- FindNeighbors(tenx, dims = 1:10)
+    tenx <- FindNeighbors(tenx, dims = 1:20)
     tenx <- FindClusters(tenx, resolution = RES_IT)
-
+    
     # also check if theres only 1 cluster/ then can go up higher es
     # Find number of clusters
     length_group <- length(unique(tenx@active.ident))
@@ -142,16 +149,16 @@ sub_clustering <- function(tenx, output_folder = '.', proj_name = 'proj_name', t
   for (j in sort(unique(tenx@active.ident))){
     sub_tenx <- subset(tenx, idents = toString(j))
     print(paste('clustering ', j, sep = ''))
-
+    
     sub_tenx <- FindVariableFeatures(sub_tenx, selection.method = "vst", nfeatures = 2000)
-    sub_tenx <- FindNeighbors(sub_tenx, dims = 1:10)
-    sub_tenx <- RunUMAP(sub_tenx, dims = 1:10, n.neighbors = 10)
+    sub_tenx <- FindNeighbors(sub_tenx, dims = 1:20)
+    sub_tenx <- RunUMAP(sub_tenx, dims = 1:20, n.neighbors = 10)
     
     # get resolution
     set_res <- find_res(sub_tenx)
     if (set_res > 0){
       #### label everything
-      sub_tenx <-FindClusters(sub_tenx,pc.use = 1:10, resolution = set_res)
+      sub_tenx <-FindClusters(sub_tenx,pc.use = 1:20, resolution = set_res)
     }
     
     # only one group
@@ -174,14 +181,14 @@ sub_clustering <- function(tenx, output_folder = '.', proj_name = 'proj_name', t
         sub2_tenx <- subset(sub_tenx, idents = toString(k))
         
         sub2_tenx <- FindVariableFeatures(sub2_tenx, selection.method = "vst", nfeatures = 2000)
-        sub2_tenx <- FindNeighbors(sub2_tenx, dims = 1:10)
-        sub2_tenx <- RunUMAP(sub2_tenx, dims = 1:10, n.neighbors = 10)
+        sub2_tenx <- FindNeighbors(sub2_tenx, dims = 1:20)
+        sub2_tenx <- RunUMAP(sub2_tenx, dims = 1:20, n.neighbors = 10)
         
         # get resolution
         set_res <- find_res(sub2_tenx)
         if (set_res > 0){
           #### label everything
-          sub2_tenx <-FindClusters(sub2_tenx,pc.use = 1:10, resolution = set_res)
+          sub2_tenx <-FindClusters(sub2_tenx,pc.use = 1:20, resolution = set_res)
         }
         
         num_groups <- length(unique(sub2_tenx@active.ident))
@@ -232,7 +239,8 @@ gen_matrix_plot <-function(tenx, output_folder = '.', proj_name = 'proj_name'){
   markers <-FindAllMarkers(tenx,only.pos = TRUE,min.pct = 0.25,thresh.use = 0.25)
   markers_filtered <- markers %>% group_by(cluster) %>% top_n(n = 20, wt = avg_logFC) 
   genes <- unique(markers_filtered$gene)
-  write.csv(markers,paste(file_create, '_matrix.csv', sep = ''), row.names = TRUE)
+  matrix_gen <- get_matrix(tenx)
+  write.csv(matrix_gen,paste(file_create, '_matrix.csv', sep = ''), row.names = TRUE)
   
   #create subdirectories
   file_create2 <- paste(output_folder, '/',proj_name, sep ='')
@@ -337,7 +345,7 @@ metrics_output <- function(tenx, output_folder = '.', species = 'mouse'){
   # umi
   print('test')
   ggsave(paste(output_folder, '/', 'uMI.pdf', sep = ''),    
-           VlnPlot(tenx, features = 'nFeature_RNA'), width =length(levels(tenx@active.ident)), height = 5)
+         VlnPlot(tenx, features = 'nFeature_RNA'), width =length(levels(tenx@active.ident)), height = 5)
 }
 
 

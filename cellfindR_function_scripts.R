@@ -1,65 +1,55 @@
-#initialize libraries
-library(Seurat)
-library(dplyr)
-library(stringr)
-library(ggplot2)
-dev.off()
+#test code for iteration from raw file
+#02072020 CellFindR2 Kevin Yu
 
-# please run functions in the CellfindR script.
-
-#load RDS file from created Seurat object
+#######################################
 
 
-file_loc <- 'location to place data'
-proj_name <- 'name of project'
-tenx <- readRDS('locate dataset')
+file_loc <- '/Users/kyu/Desktop/CellFindR_2.0/TM_Epi/'
+proj_name <- 'TM_epi_test'
 
-# if you want to create from the scratch dataset run
+# if from Raw: load_tenx uses standard seurat, point to folder with
+# matrix.mtx barcode genes (may need to change features to barcode)
 load_tenx(file_loc)
 
+# if RDS file is already created, the above load_tenx will create file.
+tenx <- readRDS('/Users/kyu/Desktop/CellFindR_2.0/TM_Epi/TM_epi.rds')
+file_loc <- '/Users/kyu/Desktop/CellFindR_2.0/TM_Epi/'
+proj_name <- 'TM_epi_test'
 
-# view UMAP
+setwd(file_loc)
 DimPlot(tenx, reduction = "umap",  label = TRUE)
 
-######################################
-# cluster layer 1:
-
-# finds the resolution (this is seurat clustering)
+# cluster first layer
 res <- find_res(tenx, initial_res = 0.1, jump = 0.1)
-
-# sets resolution of the subclustering as "res"
-# you can modify res if you don't want to run the above res to set initial clustering resolution
-# as the above find_res does take a lot of time.
-
-# sets resolution
 tenx <- FindClusters(tenx, resolution = res)
 DimPlot(tenx, reduction = "umap",  label = TRUE)
 
-###################
-# running CellFindR
-# create output folder for results
+# create output folder
 output_folder <- paste(file_loc, '/', Sys.time(), sep = '')
 dir.create(output_folder)
 
 #get subclusters based on initial clustering
 tenx_labeled <- sub_clustering(tenx, output_folder)
-saveRDS(tenx_labeled, file = paste(file_loc,'/', proj_name, ".rds", sep = ''))
 
-# Dimplot
+# save file
+saveRDS(tenx_labeled, file = paste(output_folder,'/', proj_name, "_labeled.rds", sep = ''))
+
+# load updated file
+tenx_labeled <- readRDS(paste(output_folder,'/', proj_name, "_labeled.rds", sep = ''))
+
 DimPlot(tenx_labeled, reduction = "umap",  label = TRUE)
 
-################################################################################################3
-# create matrices
+tenx_labeled <-SetIdent(tenx_labeled, value = 'CellfindR')
+levels(tenx_labeled) <-str_sort(levels(tenx_labeled), numeric = TRUE)
 
 z <- get_matrix(tenx_labeled)
 write.csv(z, file = paste(output_folder, '/', 'matrix_cellfindr.csv', sep = ''))
 
-a <- get_stats(tenx_labeled)
-write.csv(a, file = paste(file_loc, '/', 'all_stats.csv', sep = ''))
+a <- get_stats(tenx)
+write.csv(a, file = paste(output_folder, '/', 'all_stats.csv', sep = ''))
 
 tenx_labeled <-SetIdent(tenx_labeled, value = 'seurat_clusters')
-z <- get_matrix(tenx_labeled)
-write.csv(z, file = paste(file_loc, '/', 'matrix_big_groups.csv', sep = ''))
+y <- get_matrix(tenx_labeled)
+write.csv(y, file = paste(output_folder, '/', 'matrix_big_groups.csv', sep = ''))
 
-
-
+#markers <-FindAllMarkers(tenx_labeled,only.pos = TRUE,min.pct = 0.25,thresh.use = 0.25)
