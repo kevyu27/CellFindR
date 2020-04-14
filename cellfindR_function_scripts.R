@@ -17,6 +17,7 @@ DimPlot(tenx, reduction = "umap",  label = TRUE)
 # cluster first layer
 #manual set res for first layer
 res <- 0.6
+#or find a resolution
 res <- find_res(tenx, initial_res = 0.1, jump = 0.1)
 
 tenx <- FindClusters(tenx, resolution = res) 
