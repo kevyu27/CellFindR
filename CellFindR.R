@@ -1,11 +1,13 @@
 # cellFindR 2.0, version for Seurat 3.1
-#02.06.2020 Kevin Yu
+#04.9.2020 Kevin Yu
+
+# get_matrix make log scaled. 
+# iterative change to sub
 
 library(Seurat)
 library(dplyr)
 library(stringr)
 library(ggplot2)
-library(gplot2)
 library(RColorBrewer)
 dev.off()
 # load data
@@ -33,7 +35,6 @@ load_tenx <- function(file_loc, res = 0.1, proj_name = 'tenx_data', cutoff= 1000
   plot1 <- VariableFeaturePlot(tenx)
   plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
   CombinePlots(plots = list(plot1, plot2))
-  
   all.genes <- rownames(tenx)
   tenx <- ScaleData(tenx, features = all.genes)
   
@@ -131,6 +132,7 @@ find_res <- function(tenx, initial_res = 0.1, jump = 0.1, thresh_genes = 10, thr
     }
     RES_IT <- RES_IT + jump
   }
+  # if there is only 1 group, return 0,
   return(RES_POST)
 }
 
@@ -138,96 +140,116 @@ find_res <- function(tenx, initial_res = 0.1, jump = 0.1, thresh_genes = 10, thr
 # input: tenx object
 # location of output folder
 # project_name
-sub_clustering <- function(tenx, output_folder = '.', proj_name = 'proj_name', thresh_genes = 10, thresh_val = log(2)){
-  # set cell directory
-  print('running through clusters to find subclusters')
+sub_clustering <- function(tenx, output_folder = '.', proj_name = 'proj_name',
+                           thresh_genes = 10, thresh_val = log(2)){
+  print('Running subclustering')
+  
+  #public variables:
+  ##resolution keeper:
   res_keep <- data.frame('cluster'= NA,'res'= NA, 'num_clusters' =NA)
+  ##cellname cluster:
   celltocluster <- data.frame(row.names = colnames(tenx))
   celltocluster$cellnames <- colnames(tenx)
-  res_counter <- 1
   
-  for (j in sort(unique(tenx@active.ident))){
+  #add cellfindr column to metadata as string
+  tenx@meta.data$cellfindr <- as.character(tenx@active.ident)
+  
+  #what to iterate across:queue
+  lib_c <- as.character(sort(unique(tenx@active.ident)))
+  
+  while(length(lib_c != 0)){
+    # set to first value
+    j <- lib_c[1]
+    
     sub_tenx <- subset(tenx, idents = toString(j))
     print(paste('clustering ', j, sep = ''))
     
+    # need to recenter
     sub_tenx <- FindVariableFeatures(sub_tenx, selection.method = "vst", nfeatures = 2000)
     sub_tenx <- FindNeighbors(sub_tenx, dims = 1:20)
     sub_tenx <- RunUMAP(sub_tenx, dims = 1:20, n.neighbors = 10)
     
-    # get resolution
+    # get subgroups if there is a cluster, if not remove and label cells. 
     set_res <- find_res(sub_tenx)
-    if (set_res > 0){
-      #### label everything
-      sub_tenx <-FindClusters(sub_tenx,pc.use = 1:20, resolution = set_res)
-    }
+    sub_tenx <-FindClusters(sub_tenx,pc.use = 1:20, resolution = set_res)
     
-    # only one group
-    num_groups <- length(unique(sub_tenx@active.ident))
-    if (num_groups == 1){
-      print(paste(j, ' has no subclusters', sep = ''))
-      framer <- data.frame(row.names = colnames(sub_tenx))
-      framer$cellnames <- row.names(framer)
-      framer$clusterid <- j
-      celltocluster <- merge(celltocluster, framer, all = TRUE)
-    } else{
-      print(paste(j, ' has ', num_groups, ' subgroups', sep = ''))
-      
-      # plot data
+    # so subgroups, remove from queue: lib_c
+    if (set_res == 0 || length(levels(sub_tenx@active.ident)) == 1){
+      lib_c <- lib_c[lib_c != j]   
+    }
+    # with subgroups
+    else {
+      # create the plots and matrix
       gen_matrix_plot(sub_tenx, output_folder, j)
       
-      # layer 2: X.X
+      hold_group_names <- c()
+      # find subgroups from j: 
       for (k in sort(unique(sub_tenx@active.ident))){
-        print(paste('clustering ', j,'.',k, sep = ''))
+        l <- paste(j,k, sep = '.')
+        # get column names to create
         sub2_tenx <- subset(sub_tenx, idents = toString(k))
-        
-        sub2_tenx <- FindVariableFeatures(sub2_tenx, selection.method = "vst", nfeatures = 2000)
-        sub2_tenx <- FindNeighbors(sub2_tenx, dims = 1:20)
-        sub2_tenx <- RunUMAP(sub2_tenx, dims = 1:20, n.neighbors = 10)
-        
-        # get resolution
-        set_res <- find_res(sub2_tenx)
-        if (set_res > 0){
-          #### label everything
-          sub2_tenx <-FindClusters(sub2_tenx,pc.use = 1:20, resolution = set_res)
-        }
-        
-        num_groups <- length(unique(sub2_tenx@active.ident))
-        if (num_groups == 1){
-          print(paste(j,'.', k, ' has no subclusters', sep = ''))
-          framer <- data.frame(row.names = colnames(sub2_tenx))
-          framer$cellnames <- row.names(framer)
-          framer$clusterid <- paste(j,k, sep = '.')
-          celltocluster <- merge(celltocluster, framer, all = TRUE)
-        } else{
-          print(paste(j,'.', k, ' has ', num_groups, ' subgroups', sep = ''))
-          
-          # plot data
-          gen_matrix_plot(sub2_tenx, output_folder, paste(j, k, sep = '.'))
-          
-          # layer 3: X.X.X
-          for (l in sort(unique(sub2_tenx@active.ident))){
-            sub3_tenx <- subset(sub2_tenx, idents = toString(l))
-            framer <- data.frame(row.names = colnames(sub3_tenx))
-            framer$cellnames <- row.names(framer)
-            framer$clusterid <- paste(j,k,l, sep = '.')
-            celltocluster <- merge(celltocluster, framer, all = TRUE)
-          }
-        }
+        cellnames <- colnames(sub2_tenx)
+        rownames(tenx@meta.data) %in% cellnames
+        # add to the metadata file
+        tenx@meta.data[rownames(tenx@meta.data) %in% cellnames,]$cellfindr = l
+        hold_group_names<- c(hold_group_names, l)
       }
+      # add the new subgroups
+      lib_c <- c(hold_group_names, lib_c)
+      # remove original column
+      lib_c <- lib_c[lib_c != j]   
     }
+    tenx <- SetIdent(tenx, value = 'cellfindr')
   }
-  celltocluster <- na.omit(celltocluster)
-  write.csv(celltocluster, paste(output_folder, "/cell_labels.csv", sep = ''), row.names = TRUE)
-  celltocluster <- celltocluster[order(celltocluster$"cellnames"),]
-  tenx@meta.data <- tenx@meta.data[order(rownames(tenx@meta.data)),]
-  tenx@meta.data$CellfindR <- celltocluster$clusterid
-  tenx <-SetIdent(tenx,cells = rownames(tenx@meta.data), value = tenx@meta.data$CellfindR)
+  #resort order of labels
   levels(tenx) <-str_sort(levels(tenx), numeric = TRUE)
-  
-  ggsave(paste(output_folder, '/', 'UMAP_CellfindR.pdf', sep = ''),    
-         DimPlot(tenx, label = TRUE),width = 8, height = 8)
+  #graph umap
+  ggsave(paste(output_folder, '/', proj_name, '_CellfindR_umap.pdf',sep = ""), 
+         DimPlot(tenx, label = TRUE), width = 10, height = 8)
   return(tenx)
 }
+
+get_analysis <- function(tenx, output_folder = '.', proj_name = 'proj_name'){
+  # output DataQ files
+  
+  # percent.mt plot
+  ggsave(paste(output_folder, '/', proj_name, '_percent_mito.pdf',sep = ""), 
+         FeaturePlot(tenx, 'percent.mt'), width = 8, height = 8)
+  
+  # percent.mt violin plot
+  ggsave(paste(output_folder, '/', proj_name, '_percent_mito_vln.pdf',sep = ""), 
+         VlnPlot(tenx, 'percent.mt'), width = length(levels(tenx@active.ident)), height = 5)
+  
+  # umi plot
+  ggsave(paste(output_folder, '/', proj_name, '_nCount_RNA.pdf',sep = ""), 
+         FeaturePlot(tenx, 'nCount_RNA'), width = 8, height = 8)
+  
+  # umi violin plot
+  ggsave(paste(output_folder, '/', proj_name, '_nCount_RNA_vln.pdf',sep = ""), 
+         VlnPlot(tenx, 'nCount_RNA'), width = length(levels(tenx@active.ident)), height = 5)
+  
+  #############
+  #output Matrices
+  
+  tenx <-SetIdent(tenx, value = 'cellfindr')
+  levels(tenx) <-str_sort(levels(tenx), numeric = TRUE)
+  
+  z <- get_matrix(tenx)
+  write.csv(z, file = paste(output_folder, '/', 'matrix_cellfindr.csv', sep = ''))
+  
+  a <- get_stats(tenx)
+  write.csv(a, file = paste(output_folder, '/', 'all_stats_cellfindr.csv', sep = ''))
+  
+  tenx <-SetIdent(tenx, value = 'seurat_clusters')
+  y <- get_matrix(tenx)
+  write.csv(y, file = paste(output_folder, '/', 'matrix_big_groups.csv', sep = ''))
+  
+  a <- get_stats(tenx)
+  write.csv(a, file = paste(output_folder, '/', 'all_stats_big_groups.csv', sep = ''))
+  
+  
+}
+
 
 # generate matrix and plots
 gen_matrix_plot <-function(tenx, output_folder = '.', proj_name = 'proj_name'){
@@ -260,7 +282,7 @@ gen_matrix_plot <-function(tenx, output_folder = '.', proj_name = 'proj_name'){
 # generate matrix
 get_matrix <- function(tenx){
   print("getting matrix")
-  avg_expression <- AverageExpression(tenx)
+  avg_expression <- AverageExpression(tenx, use.scale = TRUE) # 
   matrix_all <- data.frame(row.names = rownames(avg_expression$RNA))
   for (i in levels(tenx@active.ident)){
     print(i)
@@ -493,5 +515,24 @@ get_deafness_plot <- function(tenx, id = 'Mouse', name = 'deafness'){
   pheatmap(heatmap_test, color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100))
   dev.off()
   return(heatmap_test)
+}
+
+# get timecourse
+get_timecourse <- function(tenx){
+  aoe <-c('Group', unique(tenx@meta.data$orig.ident))
+  df <- data.frame(aoe)
+  
+  for (groups in levels(tenx@active.ident)){
+    subgroup <-subset(tenx, idents = groups)
+    # group name
+    aod <- c(groups)
+    subgroup <-subset(tenx, idents = groups)
+    aod <- c(groups)
+    for (val in unique(tenx@meta.data$orig.ident)){
+      aod <- c(aod, sum(subgroup@meta.data == val))
+    }
+    df[groups] <-aod
+  }
+  return(df)
 }
 
